@@ -1,0 +1,25 @@
+{
+  "name": "Memory Slideshow & Dynamic TV Frame",
+  "short_name": "Memory Slideshow",
+  "description": "Cadre photo dynamique et diaporama d'hommage pour Android TV, Fire TV et Tablettes avec effet Ken Burns.",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0a0d14",
+  "theme_color": "#0a0d14",
+  "categories": ["lifestyle", "photography", "utilities"],
+  "icons": [
+    {
+      "src": "assets/icons/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icons/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

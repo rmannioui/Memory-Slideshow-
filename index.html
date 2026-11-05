@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Memory Slideshow & Dynamic TV Frame</title>
+
+  <!-- PWA & Mobile Meta Tags -->
+  <meta name="theme-color" content="#0a0d14">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="assets/icons/icon.png">
+
+  <!-- Start.io Ads Configuration Meta -->
+  <meta name="startio-app-id" content="210307679">
+  <meta name="app-ads-txt" content="app-ads.txt">
+
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Fullscreen Slideshow Canvas -->
+  <div id="slideshow-container" class="bg-mode-blur" role="region" aria-label="Slideshow Viewer">
+    <!-- Ambient Blur Backdrop for 16:9 filling -->
+    <div id="ambient-blur-layer" class="ambient-blur-layer" aria-hidden="true"></div>
+
+    <!-- Dual Slide Layers for seamless Crossfade -->
+    <div id="slide-layer-a" class="slide-layer" aria-live="polite">
+      <img src="" alt="Slideshow Image">
+    </div>
+    <div id="slide-layer-b" class="slide-layer" aria-live="polite">
+      <img src="" alt="Slideshow Image">
+    </div>
+
+    <!-- Empty State Overlay when no user photos are added yet -->
+    <div id="slideshow-empty-state" class="slideshow-empty-state" style="display: none;">
+      <div class="empty-state-card">
+        <div class="empty-state-icon">
+          <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+        </div>
+        <h2 class="empty-state-title" data-i18n="empty_state_title">Votre Cadre Photo Personnel</h2>
+        <p class="empty-state-desc" data-i18n="empty_state_desc">Aucune photo pour le moment. Ajoutez vos propres photos de famille, d'hommage ou de vacances pour démarrer votre diaporama personnalisé.</p>
+        <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center;">
+          <button id="btn-empty-add-photos" class="tv-btn tv-btn-primary" data-i18n="btn_add_photos">
+            <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            <span>Ajouter des Photos</span>
+          </button>
+          <button id="btn-empty-add-music" class="tv-btn" data-i18n="btn_add_music">
+            <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:currentColor;"><path d="M14 10H3v2h11v-2zm0-4H3v2h11V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM3 16h7v-2H3v2z"/></svg>
+            <span>Ajouter Musique</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Ambient Info Header (Clock & Memorial Candle) -->
+    <header class="ambient-header">
+      <div id="clock-widget" class="clock-widget">
+        <span id="clock-time" class="clock-time">--:--</span>
+        <span id="clock-date" class="clock-date">--</span>
+      </div>
+
+      <div id="memorial-candle" class="memorial-candle-badge">
+        <div class="candle-flame-icon"></div>
+        <span class="candle-text" data-i18n="theme_memorial">Mémorial & Hommage</span>
+      </div>
+    </header>
+
+    <!-- Bottom Ambient Captions & Memorial Quotes Scrim -->
+    <footer class="ambient-footer">
+      <h1 id="caption-title" class="caption-title"></h1>
+      <p id="caption-subtitle" class="caption-subtitle"></p>
+
+      <div id="memorial-quote-box" class="memorial-quote-box">
+        <p id="quote-text" class="quote-text"></p>
+        <span id="quote-author" class="quote-author"></span>
+      </div>
+    </footer>
+
+    <!-- Progress Bar at bottom border -->
+    <div id="slideshow-progress-bar" class="slideshow-progress-bar"></div>
+
+    <!-- Toast message for TV remote feedback -->
+    <div id="tv-hint-toast" class="tv-hint-toast"></div>
+
+    <!-- TV Remote Lateral Navigation Chevrons -->
+    <nav id="ui-controls-bar" class="ui-controls-bar">
+      <button id="btn-prev" class="tv-btn tv-btn-icon" data-i18n-title="btn_prev" aria-label="Photo précédente">
+        <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+      </button>
+      <button id="btn-next" class="tv-btn tv-btn-icon" data-i18n-title="btn_next" aria-label="Photo suivante">
+        <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+      </button>
+    </nav>
+
+    <!-- Top Floating Toolbar -->
+    <div id="ui-top-bar" class="ui-top-bar">
+      <button id="btn-guide" class="tv-btn tv-btn-icon" data-i18n-title="remote_guide_title" aria-label="Aide Télécommande">
+        <svg viewBox="0 0 24 24"><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></svg>
+      </button>
+      <button id="btn-fullscreen" class="tv-btn tv-btn-icon" data-i18n-title="btn_fullscreen" aria-label="Plein Écran">
+        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+      </button>
+    </div>
+
+    <!-- Bottom Centered Floating TV Dock -->
+    <div id="ui-bottom-dock" class="ui-bottom-dock">
+      <button id="btn-photos" class="tv-btn" data-i18n="btn_photos">
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+        <span>Gérer Photos</span>
+      </button>
+
+      <button id="btn-add-music" class="tv-btn" data-i18n-title="btn_add_music" aria-label="Ajouter Musique">
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;"><path d="M14 10H3v2h11v-2zm0-4H3v2h11V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM3 16h7v-2H3v2z"/></svg>
+        <span data-i18n="btn_add_music">Ajouter Musique</span>
+      </button>
+
+      <button id="btn-manage-songs" class="tv-btn" data-i18n-title="btn_manage_songs" aria-label="Gérer la Musique">
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+        <span data-i18n="btn_manage_songs_short">Musique</span>
+      </button>
+
+      <button id="btn-play-pause" class="tv-btn tv-btn-primary tv-btn-icon" data-i18n-title="btn_pause" aria-label="Lecture ou Pause">
+        <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      </button>
+
+      <button id="btn-sound" class="tv-btn tv-btn-icon" data-i18n-title="btn_sound_off" aria-label="Son d'Ambiance">
+        <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+      </button>
+
+      <button id="btn-settings" class="tv-btn" data-i18n="btn_settings">
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        <span>Paramètres</span>
+      </button>
+    </div>
+
+    <!-- Start.io Non-Intrusive Banner Container (Displayed during Pause & Setup) -->
+    <aside id="startio-banner" class="startio-ad-banner" aria-label="Sponsor">
+      <div class="ad-badge" data-i18n="ads_compliance_badge">Start.io Ad Network • app-ads.txt</div>
+      <div class="ad-content">
+        <div class="ad-icon">Ad</div>
+        <div class="ad-details">
+          <div class="ad-title">Soutenez Memory Slideshow</div>
+          <div class="ad-desc">Bannière discrète en pause • Respecte vos cérémonies</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ========================================================================
+       MODAL: Settings (Paramètres)
+       ======================================================================== -->
+  <div id="settings-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h2 id="settings-title" class="modal-title" data-i18n="settings_title">Réglages du Diaporama</h2>
+        <button class="tv-btn tv-btn-icon btn-modal-close" aria-label="Fermer">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Language Switcher -->
+        <div class="setting-row">
+          <div class="setting-label-group">
+            <span class="setting-label" data-i18n="lang_label">Langue / Language :</span>
+            <span class="setting-desc">Français ou Anglais automatique</span>
+          </div>
+          <select id="lang-select" class="form-select">
+            <option value="fr">Français</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+
+        <!-- Visual Theme Selection -->
+        <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 10px;">
+          <span class="setting-label" data-i18n="theme_title">Ambiance & Thème</span>
+          <div class="theme-options-grid">
+            <div class="theme-tile selected" data-theme="memorial" tabindex="0">
+              <div class="theme-tile-title" data-i18n="theme_memorial">Mémorial & Hommage</div>
+              <div class="theme-tile-desc" data-i18n="theme_memorial_desc">Atmosphère solennelle, lueur de bougie dorée.</div>
+            </div>
+            <div class="theme-tile" data-theme="celebration" tabindex="0">
+              <div class="theme-tile-title" data-i18n="theme_celebration">Souvenirs & Fêtes</div>
+              <div class="theme-tile-desc" data-i18n="theme_celebration_desc">Teintes chaudes pour réunions de famille.</div>
+            </div>
+            <div class="theme-tile" data-theme="art" tabindex="0">
+              <div class="theme-tile-title" data-i18n="theme_art">Cadre d'Art & Paysages</div>
+              <div class="theme-tile-desc" data-i18n="theme_art_desc">Effet galerie d'art et paysages relaxants.</div>
+            </div>
+            <div class="theme-tile" data-theme="minimal" tabindex="0">
+              <div class="theme-tile-title" data-i18n="theme_minimal">Épuré & Plein Écran</div>
+              <div class="theme-tile-desc" data-i18n="theme_minimal_desc">Photo pure sans texte ni superposition.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide Duration -->
+        <div class="setting-row">
+          <div class="setting-label-group">
+            <span class="setting-label" data-i18n="setting_duration">Vitesse d'affichage</span>
+            <span class="setting-desc">Temps d'attente par photo</span>
+          </div>
+          <select id="setting-duration-select" class="form-select">
+            <option value="5000" data-i18n="setting_duration_5s">Rapide (5s)</option>
+            <option value="8000" data-i18n="setting_duration_8s">Équilibré (8s)</option>
+            <option value="12000" selected data-i18n="setting_duration_12s">Cinématographique (12s)</option>
+            <option value="20000" data-i18n="setting_duration_20s">Contemplatif (20s)</option>
+            <option value="30000" data-i18n="setting_duration_30s">Cadre TV Lent (30s)</option>
+          </select>
+        </div>
+
+        <!-- Motion Effect -->
+        <div class="setting-row">
+          <div class="setting-label-group">
+            <span class="setting-label" data-i18n="setting_effect">Effet d'Animation</span>
+            <span class="setting-desc">Mouvements fluides 16:9</span>
+          </div>
+          <select id="setting-effect-select" class="form-select">
+            <option value="kenburns" selected data-i18n="setting_effect_kenburns">Effet Ken Burns (Zoom & Pan)</option>
+            <option value="crossfade" data-i18n="setting_effect_crossfade">Fondu Enchaîné Doux</option>
+            <option value="zoom" data-i18n="setting_effect_zoom">Zoom Lent Continu</option>
+            <option value="static" data-i18n="setting_effect_static">Statique (Transition nette)</option>
+          </select>
+        </div>
+
+        <!-- Background Style -->
+        <div class="setting-row">
+          <div class="setting-label-group">
+            <span class="setting-label" data-i18n="setting_bg">Style d'Arrière-Plan (Hors 16:9)</span>
+            <span class="setting-desc">Pour photos verticales ou 4:3</span>
+          </div>
+          <select id="setting-bg-select" class="form-select">
+            <option value="blur" selected data-i18n="setting_bg_blur">Flou d'ambiance étendu</option>
+            <option value="black" data-i18n="setting_bg_black">Noir cinéma profond</option>
+            <option value="white" data-i18n="setting_bg_white">Blanc galerie musée</option>
+          </select>
+        </div>
+
+        <!-- Toggles -->
+        <div class="setting-row">
+          <div class="setting-label-group">
+            <span class="setting-label" data-i18n="setting_show_quotes">Afficher citations & légendes</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="toggle-quotes" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-label-group">
+            <span class="setting-label" data-i18n="setting_show_clock">Afficher l'horloge & date</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="toggle-clock" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-label-group">
+            <span class="setting-label" data-i18n="setting_shuffle">Lecture aléatoire</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="toggle-shuffle">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <!-- Start.io Monetization Section -->
+        <div class="setting-row" style="flex-direction: column; align-items: stretch; gap: 10px; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
+          <span class="setting-label" data-i18n="ads_section_title">Monétisation Publicitaire (Start.io)</span>
+          <p class="setting-desc" data-i18n="ads_note">La publicité ne s'affiche jamais pendant le défilement actif du diaporama d'hommage pour préserver le respect du moment.</p>
+
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label for="startio-app-id-input" class="setting-label" data-i18n="ads_app_id_label">Start.io App ID :</label>
+            <input type="text" id="startio-app-id-input" class="form-input" style="width: 160px;" placeholder="210307679">
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label for="startio-mode-select" class="setting-label" data-i18n="ads_mode_label">Mode publicitaire :</label>
+            <select id="startio-mode-select" class="form-select">
+              <option value="paused_only" selected data-i18n="ads_mode_paused_only">Discret (En pause et menu)</option>
+              <option value="demo" data-i18n="ads_mode_demo">Bannière Test Démo</option>
+              <option value="disabled" data-i18n="ads_mode_disabled">Désactivé (Sans pub)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="tv-btn tv-btn-primary btn-modal-close" data-i18n="btn_close">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL: Photos Management (Gestion des Photos)
+       ======================================================================== -->
+  <div id="photos-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="photos-title">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h2 id="photos-title" class="modal-title" data-i18n="photos_title">Gestion des Photos & Galeries</h2>
+        <button class="tv-btn tv-btn-icon btn-modal-close" aria-label="Fermer">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="setting-row">
+          <div class="setting-label-group">
+            <span class="setting-label" data-i18n="photos_library_title">Mes Photos Personnalisées</span>
+            <span id="photos-count-label" class="setting-desc">0 photo dans la liste de lecture</span>
+          </div>
+        </div>
+
+        <!-- Dropzone for local file upload -->
+        <div id="photo-dropzone" class="dropzone" tabindex="0" role="button">
+          <svg viewBox="0 0 24 24" style="width:36px;height:36px;fill:var(--accent-gold);margin-bottom:8px;"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+          <p style="font-weight: 500; font-size: 0.95rem;" data-i18n="photos_drop_hint">Glissez vos photos ici ou cliquez pour parcourir vos fichiers</p>
+          <input type="file" id="photo-file-input" multiple accept="image/*" style="display: none;">
+        </div>
+
+        <!-- Uploaded photos preview grid -->
+        <div id="custom-photos-grid" class="photo-grid"></div>
+
+        <button id="btn-clear-photos" class="tv-btn" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4); align-self: flex-start;" data-i18n="btn_clear_custom">Effacer les photos ajoutées</button>
+      </div>
+
+      <div class="modal-footer">
+        <button class="tv-btn tv-btn-primary btn-modal-close" data-i18n="btn_close">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Elements for Background Soundtrack -->
+  <audio id="slideshow-audio-player" preload="auto"></audio>
+  <audio id="slideshow-stream-player" preload="none"></audio>
+
+  <!-- ========================================================================
+       MODAL: Manage Songs & Soundtracks (Gestion de la Musique)
+       ======================================================================== -->
+  <div id="songs-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="songs-title">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h2 id="songs-title" class="modal-title" data-i18n="songs_modal_title">Gestion de la Musique & Bande Son</h2>
+        <button class="tv-btn tv-btn-icon btn-modal-close" aria-label="Fermer">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Audio Source Selector Tabs -->
+        <div class="songs-nav-tabs" role="tablist">
+          <button class="song-tab-btn active" data-tab="local" data-i18n="songs_tab_local">Fichiers Locaux</button>
+          <button class="song-tab-btn" data-tab="stream" data-i18n="songs_tab_stream">Flux Audio Web</button>
+          <button class="song-tab-btn" data-tab="ambient" data-i18n="songs_tab_ambient">Ambiance Méditative</button>
+        </div>
+
+        <!-- Master Volume Control -->
+        <div class="volume-control-row">
+          <svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:var(--accent-gold);flex-shrink:0;"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+          <span style="font-size:0.85rem;min-width:70px;" data-i18n="music_volume_label">Volume :</span>
+          <input type="range" id="music-volume-slider" class="volume-range-input" min="0" max="100" value="70">
+          <span id="music-volume-label" style="font-size:0.85rem;min-width:40px;color:var(--text-muted);">70%</span>
+        </div>
+
+        <!-- TAB 1: Local Uploaded Audio Files -->
+        <div id="song-tab-local" class="song-tab-content active">
+          <!-- Audio Dropzone -->
+          <div id="audio-dropzone" class="dropzone" tabindex="0" role="button">
+            <svg viewBox="0 0 24 24" style="width:36px;height:36px;fill:var(--accent-gold);margin-bottom:8px;"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+            <p style="font-weight: 500; font-size: 0.95rem;" data-i18n="local_music_upload_hint">Glissez vos fichiers audio ici ou cliquez pour importer (MP3, WAV, AAC, OGG, FLAC)</p>
+            <button type="button" class="tv-btn tv-btn-primary" style="margin-top:10px;pointer-events:none;">
+              <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor;"><path d="M14 10H3v2h11v-2zm0-4H3v2h11V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM3 16h7v-2H3v2z"/></svg>
+              <span data-i18n="btn_add_music">Ajouter Musique</span>
+            </button>
+            <input type="file" id="audio-file-input" multiple accept="audio/*" style="display: none;">
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+            <span class="setting-label" data-i18n="uploaded_songs_title">Liste de lecture locale</span>
+            <button id="btn-clear-songs" class="tv-btn" style="padding:4px 10px;font-size:0.8rem;color:#ef4444;border-color:rgba(239,68,68,0.4);" data-i18n="btn_clear_songs">Effacer</button>
+          </div>
+
+          <div id="audio-track-list" class="audio-track-list">
+            <!-- Dynamically populated from IndexedDB -->
+          </div>
+        </div>
+
+        <!-- TAB 2: Web Audio Stream / Online Radio -->
+        <div id="song-tab-stream" class="song-tab-content">
+          <div class="stream-preview-card">
+            <label for="stream-url-input" class="setting-label" data-i18n="stream_input_label">URL du flux audio web ou radio en ligne :</label>
+            <div style="display:flex; gap:10px;">
+              <input type="text" id="stream-url-input" class="form-input" style="flex:1;" data-i18n-placeholder="stream_input_placeholder" placeholder="https://stream.example.com/relax.mp3">
+              <button id="btn-load-stream" class="tv-btn tv-btn-primary" data-i18n="btn_load_stream">Écouter</button>
+            </div>
+
+            <!-- Suggested peace/ambient stream presets -->
+            <div style="margin-top:8px;">
+              <span style="font-size:0.8rem;color:var(--text-muted);" data-i18n="stream_presets_label">Radios d'ambiance suggérées :</span>
+              <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap;">
+                <button type="button" class="tv-btn btn-stream-preset" data-url="https://stream.srg-ssr.ch/m/rsc_de/mp3_128" data-i18n="preset_classical" style="font-size:0.8rem;padding:6px 10px;">Classique & Sérénité</button>
+                <button type="button" class="tv-btn btn-stream-preset" data-url="https://live.zeno.fm/40wqm5z77k8uv" data-i18n="preset_zen" style="font-size:0.8rem;padding:6px 10px;">Ambiance Zen</button>
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
+              <div id="stream-status-badge" class="stream-status-badge">
+                <span id="stream-status-dot" style="width:8px;height:8px;border-radius:50%;background:#94a3b8;"></span>
+                <span id="stream-status-text">Aucun flux audio chargé</span>
+              </div>
+              <button id="btn-test-stream" class="tv-btn" style="padding:6px 14px;font-size:0.85rem;">Tester le flux</button>
+            </div>
+
+            <p style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;">
+              Diffusé en streaming direct légal et fluide pendant votre diaporama sur grand écran ou tablette.
+            </p>
+          </div>
+        </div>
+
+        <!-- TAB 3: Meditative Ambient Synth -->
+        <div id="song-tab-ambient" class="song-tab-content">
+          <div style="background:#1e293b;border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:18px;display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:40px;height:40px;border-radius:50%;background:rgba(212,175,55,0.2);display:flex;align-items:center;justify-content:center;color:var(--accent-gold);font-size:1.2rem;">
+                ♫
+              </div>
+              <div>
+                <h4 style="font-size:1rem;color:#ffffff;">Carillons & Harpe Méditative</h4>
+                <p style="font-size:0.8rem;color:var(--text-muted);">Génération procédurale pure Web Audio API (aucun téléchargement, 100% hors-ligne).</p>
+              </div>
+            </div>
+            <button id="btn-activate-ambient" class="tv-btn tv-btn-primary" style="align-self:flex-start;">Activer cette ambiance sonore</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="tv-btn tv-btn-primary btn-modal-close" data-i18n="btn_close">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL: TV Remote Guide (Guide Télécommande TV)
+       ======================================================================== -->
+  <div id="guide-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="guide-title">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h2 id="guide-title" class="modal-title" data-i18n="remote_guide_title">Télécommande TV & Raccourcis</h2>
+        <button class="tv-btn tv-btn-icon btn-modal-close" aria-label="Fermer">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <div style="display:flex; align-items:center; gap:16px;">
+            <div style="background:#1e293b; padding:10px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.15); font-weight:bold; min-width:120px; text-align:center;">OK / Entrée</div>
+            <span data-i18n="remote_ok">Lecture / Pause du diaporama</span>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:16px;">
+            <div style="background:#1e293b; padding:10px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.15); font-weight:bold; min-width:120px; text-align:center;">Flèches ← / →</div>
+            <span data-i18n="remote_arrows">Photo précédente / Photo suivante</span>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:16px;">
+            <div style="background:#1e293b; padding:10px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.15); font-weight:bold; min-width:120px; text-align:center;">Flèche ↑ Haut</div>
+            <span data-i18n="remote_up">Afficher / Masquer la barre de commandes</span>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:16px;">
+            <div style="background:#1e293b; padding:10px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.15); font-weight:bold; min-width:120px; text-align:center;">Retour / Échap</div>
+            <span data-i18n="remote_back">Ouvrir le menu des réglages</span>
+          </div>
+        </div>
+
+        <p style="margin-top:16px; color:var(--text-muted); font-size:0.85rem;" data-i18n="tagline_tv">
+          Optimisé pour Android TV, Fire TV & Tablettes. Les commandes s'effacent automatiquement après quelques secondes pour un affichage plein écran pur.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="tv-btn tv-btn-primary btn-modal-close" data-i18n="btn_close">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/i18n.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- Service Worker Registration for Offline TV / PWA -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js').catch(err => {
+          console.log('ServiceWorker registration error:', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,1104 @@
+/* ==========================================================================
+   Memory Slideshow & Dynamic TV Frame - Main Stylesheet
+   Optimized for Android TV (16:9 1080p/4K), Fire TV & Tablets (FR/EN)
+   ========================================================================== */
+
+:root {
+  --bg-primary: #0a0d14;
+  --bg-secondary: #121826;
+  --bg-surface: rgba(22, 30, 46, 0.85);
+  --bg-scrim: rgba(0, 0, 0, 0.65);
+  --accent-gold: #d4af37;
+  --accent-gold-glow: rgba(212, 175, 55, 0.45);
+  --accent-amber: #f59e0b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-subtle: #64748b;
+  --border-subtle: rgba(255, 255, 255, 0.12);
+  --focus-ring: #f59e0b;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --font-serif: "Cinzel", "Playfair Display", "Georgia", serif;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --transition-speed: 2.2s;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #000;
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ==========================================================================
+   Slideshow Canvas Container
+   ========================================================================== */
+
+#slideshow-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #000000;
+  cursor: default;
+}
+
+/* Ambient blurred background layer for aspect-ratio fill */
+.ambient-blur-layer {
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(35px) brightness(0.5);
+  transform: scale(1.1);
+  opacity: 0.85;
+  transition: opacity 2s ease-in-out, background-image 2s ease-in-out;
+  z-index: 1;
+}
+
+/* Layer A & B for seamless Crossfades */
+.slide-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--transition-speed) ease-in-out;
+  z-index: 2;
+  will-change: opacity, transform;
+}
+
+.slide-layer.active {
+  opacity: 1;
+  z-index: 3;
+}
+
+.slide-layer img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+/* Background modes */
+.bg-mode-black .ambient-blur-layer {
+  display: none;
+}
+.bg-mode-black #slideshow-container {
+  background-color: #000000;
+}
+
+.bg-mode-white .ambient-blur-layer {
+  display: none;
+}
+.bg-mode-white #slideshow-container {
+  background-color: #f1f5f9;
+}
+.bg-mode-white .slide-layer img {
+  box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+  max-width: 94%;
+  max-height: 94%;
+}
+
+/* ==========================================================================
+   Ken Burns Cinematic Animations
+   ========================================================================== */
+
+.kenburns-zoom-in img {
+  animation: kbZoomIn var(--slide-duration, 12s) cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.kenburns-zoom-out img {
+  animation: kbZoomOut var(--slide-duration, 12s) cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.kenburns-pan-left img {
+  animation: kbPanLeft var(--slide-duration, 12s) cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.kenburns-pan-right img {
+  animation: kbPanRight var(--slide-duration, 12s) cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.kenburns-pan-up img {
+  animation: kbPanUp var(--slide-duration, 12s) cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes kbZoomIn {
+  0% {
+    transform: scale(1.0) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.15) translate(-1%, -1%);
+  }
+}
+
+@keyframes kbZoomOut {
+  0% {
+    transform: scale(1.18) translate(1%, 1%);
+  }
+  100% {
+    transform: scale(1.02) translate(0, 0);
+  }
+}
+
+@keyframes kbPanLeft {
+  0% {
+    transform: scale(1.12) translate(2.5%, 0);
+  }
+  100% {
+    transform: scale(1.12) translate(-2.5%, -1%);
+  }
+}
+
+@keyframes kbPanRight {
+  0% {
+    transform: scale(1.12) translate(-2.5%, 0);
+  }
+  100% {
+    transform: scale(1.12) translate(2.5%, 1%);
+  }
+}
+
+@keyframes kbPanUp {
+  0% {
+    transform: scale(1.10) translate(0, 2%);
+  }
+  100% {
+    transform: scale(1.16) translate(0, -2%);
+  }
+}
+
+/* ==========================================================================
+   Overlay: Clock, Date, Memorial Candle & Weather
+   ========================================================================== */
+
+.ambient-header {
+  position: absolute;
+  top: 28px;
+  left: 36px;
+  right: 36px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  z-index: 10;
+  pointer-events: none;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+  transition: opacity 0.5s ease;
+}
+
+.clock-widget {
+  display: flex;
+  flex-direction: column;
+}
+
+.clock-time {
+  font-size: 2.2rem;
+  font-weight: 300;
+  letter-spacing: 1px;
+  line-height: 1.1;
+  color: #ffffff;
+}
+
+.clock-date {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  text-transform: capitalize;
+  margin-top: 4px;
+}
+
+.memorial-candle-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(18, 24, 38, 0.65);
+  backdrop-filter: blur(8px);
+  padding: 8px 16px;
+  border-radius: 30px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.candle-flame-icon {
+  width: 14px;
+  height: 20px;
+  background: radial-gradient(circle at 50% 80%, #fff, #fbbf24, #ea580c);
+  border-radius: 50% 50% 35% 35%;
+  animation: candleFlicker 2.5s infinite alternate ease-in-out;
+  box-shadow: 0 0 12px #f59e0b;
+}
+
+@keyframes candleFlicker {
+  0% { transform: scale(1) rotate(-1deg); opacity: 0.9; }
+  50% { transform: scale(1.08, 0.95) rotate(1deg); opacity: 1; }
+  100% { transform: scale(0.95, 1.05) rotate(0deg); opacity: 0.88; }
+}
+
+.candle-text {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  letter-spacing: 1.5px;
+  color: var(--accent-gold);
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   Overlay: Captions & Memorial Quotes (Bottom Scrim)
+   ========================================================================== */
+
+.ambient-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 60px 48px 36px 48px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.5) 60%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  text-align: center;
+  z-index: 10;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+
+.caption-title {
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+  font-weight: 500;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+  text-shadow: 0 3px 12px rgba(0, 0, 0, 0.9);
+  max-width: 80%;
+  margin-bottom: 6px;
+  transition: opacity 0.5s ease;
+}
+
+.caption-subtitle {
+  font-size: 1.05rem;
+  font-weight: 300;
+  color: #e2e8f0;
+  max-width: 75%;
+  letter-spacing: 0.3px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+  margin-bottom: 10px;
+}
+
+.memorial-quote-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 820px;
+  margin-top: 4px;
+}
+
+.quote-text {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.15rem;
+  line-height: 1.5;
+  color: #f1f5f9;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+}
+
+.quote-author {
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Evanescent UI / Remote Navigation Controls
+   ========================================================================== */
+
+.ui-controls-bar {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: space-between;
+  padding: 0 28px;
+  z-index: 20;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease-in-out;
+}
+
+.ui-controls-bar.visible,
+.ui-top-bar.visible,
+.ui-bottom-dock.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.ui-top-bar {
+  position: absolute;
+  top: 24px;
+  right: 28px;
+  display: flex;
+  gap: 12px;
+  z-index: 25;
+  opacity: 0;
+  transition: opacity 0.4s ease-in-out;
+  pointer-events: none;
+}
+
+.ui-bottom-dock {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(16px);
+  padding: 10px 24px;
+  border-radius: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  z-index: 30;
+  opacity: 0;
+  transition: opacity 0.4s ease-in-out;
+  pointer-events: none;
+}
+
+/* Buttons with 48dp minimum touch target & TV Remote focus */
+.tv-btn {
+  min-width: 48px;
+  min-height: 48px;
+  padding: 10px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(30, 41, 59, 0.85);
+  color: var(--text-main);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.tv-btn:hover {
+  background: rgba(51, 65, 85, 0.95);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* 10-foot TV D-Pad Focus Ring */
+.tv-btn:focus-visible,
+.tv-btn:focus,
+select:focus,
+input:focus {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+  background: rgba(245, 158, 11, 0.25);
+  border-color: var(--accent-amber);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.6);
+  transform: scale(1.08);
+  z-index: 40;
+}
+
+.tv-btn-primary {
+  background: linear-gradient(135deg, #d4af37, #b8860b);
+  color: #0b0f19;
+  border: none;
+  font-weight: 600;
+}
+
+.tv-btn-primary:hover {
+  background: linear-gradient(135deg, #e5c158, #c69512);
+}
+
+.tv-btn-icon {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.tv-btn-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+/* TV Hint Badge when paused or inactive */
+.tv-hint-toast {
+  position: absolute;
+  top: 85px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(10px);
+  padding: 8px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 15;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.tv-hint-toast.visible {
+  opacity: 1;
+}
+
+/* Progress bar along the very bottom edge */
+.slideshow-progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-gold), var(--accent-amber));
+  width: 0%;
+  z-index: 35;
+  transition: width linear;
+}
+
+/* ==========================================================================
+   Start.io Non-Intrusive Ad Container
+   ========================================================================== */
+
+.startio-ad-banner {
+  position: absolute;
+  bottom: 84px;
+  right: 28px;
+  max-width: 360px;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(12px);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 10px 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  z-index: 25;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  animation: fadeIn 0.4s ease;
+}
+
+.startio-ad-banner.active {
+  display: flex;
+}
+
+.ad-badge {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-subtle);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  align-self: flex-start;
+}
+
+.ad-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ad-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.ad-details {
+  flex: 1;
+}
+
+.ad-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.ad-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Modals (Settings, Photos Management, TV Remote Guide)
+   ========================================================================== */
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.modal-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-sheet {
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 680px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
+  transform: translateY(20px) scale(0.97);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.modal-backdrop.open .modal-sheet {
+  transform: translateY(0) scale(1);
+}
+
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #162032;
+}
+
+.modal-title {
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--accent-gold);
+}
+
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: #162032;
+}
+
+/* Settings Form Controls */
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.setting-label-group {
+  display: flex;
+  flex-direction: column;
+  max-width: 65%;
+}
+
+.setting-label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.setting-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.form-select, .form-input {
+  min-height: 44px;
+  background: #1e293b;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.form-select {
+  cursor: pointer;
+}
+
+/* Switch Toggle */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 28px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #334155;
+  transition: 0.3s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--accent-amber);
+}
+
+input:focus-visible + .slider {
+  box-shadow: 0 0 10px var(--accent-amber);
+}
+
+input:checked + .slider:before {
+  transform: translateX(24px);
+}
+
+/* Photo Gallery Item Cards */
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.photo-card {
+  position: relative;
+  aspect-ratio: 16/9;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  background: #1e293b;
+}
+
+.photo-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-card-delete {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+/* Dropzone */
+.dropzone {
+  border: 2px dashed rgba(212, 175, 55, 0.4);
+  border-radius: var(--radius-md);
+  padding: 28px 16px;
+  text-align: center;
+  background: rgba(30, 41, 59, 0.4);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.dropzone:hover, .dropzone.dragover {
+  border-color: var(--accent-gold);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+/* Theme selector radio tiles */
+.theme-options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.theme-tile {
+  background: #1e293b;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.theme-tile:hover {
+  background: #27354a;
+}
+
+.theme-tile.selected {
+  border-color: var(--accent-gold);
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.theme-tile-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.theme-tile-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Music & Songs Management Modal */
+.songs-nav-tabs {
+  display: flex;
+  gap: 8px;
+  background: #0f172a;
+  padding: 6px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.song-tab-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.song-tab-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.song-tab-btn.active {
+  background: rgba(212, 175, 55, 0.2);
+  color: var(--accent-gold);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  font-weight: 600;
+}
+
+.song-tab-content {
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.song-tab-content.active {
+  display: flex;
+}
+
+.audio-track-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.audio-track-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #1e293b;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.audio-track-item.playing {
+  border-color: var(--accent-gold);
+  background: rgba(212, 175, 55, 0.12);
+}
+
+.audio-track-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.audio-track-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-gold);
+  flex-shrink: 0;
+}
+
+.audio-track-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.audio-track-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.audio-track-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Web Audio Stream Integration Card */
+.stream-preview-card {
+  background: #1e293b;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stream-status-badge {
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+
+.stream-status-badge.ready {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.stream-status-badge.playing {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+.stream-status-badge.error {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+/* Volume Slider */
+.volume-control-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #1e293b;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.volume-range-input {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: #334155;
+  outline: none;
+  accent-color: var(--accent-gold);
+  cursor: pointer;
+}
+
+/* Keyframe for generic fade */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   Responsive Adaptations (Tablets, Android TV, Mobile)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .ambient-header {
+    top: 16px;
+    left: 16px;
+    right: 16px;
+  }
+  .clock-time {
+    font-size: 1.6rem;
+  }
+  .ambient-footer {
+    padding: 30px 20px 20px 20px;
+  }
+  .caption-title {
+    font-size: 1.25rem;
+  }
+  .quote-text {
+    font-size: 0.95rem;
+  }
+  .theme-options-grid {
+    grid-template-columns: 1fr;
+  }
+  .startio-ad-banner {
+    bottom: 90px;
+    right: 12px;
+    left: 12px;
+    max-width: none;
+  }
+}
+
+/* ==========================================================================
+   Clean User Empty State (When no photos are imported yet)
+   ========================================================================== */
+.slideshow-empty-state {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(30, 41, 59, 0.95) 0%, rgba(10, 13, 20, 0.98) 100%);
+  z-index: 5;
+  padding: 24px;
+}
+
+.empty-state-card {
+  max-width: 540px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(212, 163, 89, 0.3);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 40px 32px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  animation: modalEnter 0.35s ease-out;
+}
+
+.empty-state-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px auto;
+  border-radius: 50%;
+  background: rgba(212, 163, 89, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(212, 163, 89, 0.4);
+}
+
+.empty-state-icon svg {
+  width: 36px;
+  height: 36px;
+  fill: var(--accent-gold);
+}
+
+.empty-state-title {
+  color: var(--text-primary);
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  letter-spacing: -0.02em;
+}
+
+.empty-state-desc {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.empty-state-card .tv-btn {
+  padding: 14px 28px;
+  font-size: 1.05rem;
+}
+

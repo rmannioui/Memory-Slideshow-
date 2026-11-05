@@ -1,0 +1,6 @@
+{
+  "name": "Memory Slideshow",
+  "description": "Dynamic photo frame and memorial slideshow for TV and tablets with Ken Burns effects, FR/EN bilingual support, and TV remote controls.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
